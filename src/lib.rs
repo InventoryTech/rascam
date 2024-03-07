@@ -375,7 +375,7 @@ impl SeriousCamera {
             match status {
                 MMAL_STATUS_T::MMAL_SUCCESS => Ok(()),
                 s => Err(MmalError::with_status(
-                    "Unable to set control port parmaeter".to_owned(),
+                    "Unable to set control port parameter".to_owned(),
                     s,
                 )
                 .into()),
@@ -503,6 +503,60 @@ impl SeriousCamera {
                 )
                 .into());
             }
+
+            let mirror_mode = if settings.horizontal_flip && settings.vertical_flip {
+                MirrorMode::Both
+            } else if settings.horizontal_flip {
+                MirrorMode::Horizontal
+            } else if settings.vertical_flip {
+                MirrorMode::Vertical
+            } else {
+                MirrorMode::None
+            };
+            for port in (0..=2).map(|x| x as isize) {
+                if ffi::mmal_port_parameter_set_int32(
+                    *self.camera.as_ref().output.offset(port),
+                    ffi::MMAL_PARAMETER_MIRROR,
+                    mirror_mode.to_i32(),
+                ) != MMAL_STATUS_T::MMAL_SUCCESS
+                {
+                    return Err(MmalError::with_status(
+                        "Unable to set V H Mirror".to_owned(),
+                        status,
+                    )
+                    .into());
+                }
+            }
+
+            // Rotation
+            for port in (0..=2).map(|x| x as isize) {
+                if ffi::mmal_port_parameter_set_int32(
+                    *self.camera.as_ref().output.offset(port),
+                    ffi::MMAL_PARAMETER_ROTATION,
+                    settings.rotation.to_i32(),
+                ) != MMAL_STATUS_T::MMAL_SUCCESS
+                {
+                    return Err(MmalError::with_status(
+                        "Unable to set Rotation".to_owned(),
+                        status,
+                    )
+                    .into());
+                }
+            }
+
+            // let mut param: ffi::MMAL_PARAMETER_INT32_T = mem::zeroed();
+            // param.hdr.id = ffi::MMAL_PARAMETER_ROTATION as u32;
+            // param.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_INT32_T>() as u32;
+            // param.value = settings.rotation.to_i32();
+
+            // let status = ffi::mmal_port_parameter_set(self.camera.as_ref().control, &param.hdr);
+            // if status != MMAL_STATUS_T::MMAL_SUCCESS {
+            //     return Err(MmalError::with_status(
+            //         "Unable to set Rotation".to_owned(),
+            //         status,
+            //     )
+            //     .into());
+            // }
 
             // Brightness
             let brightness: MMAL_RATIONAL_T = MMAL_RATIONAL_T {

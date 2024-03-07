@@ -101,6 +101,20 @@ impl FlickerAvoidMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum MirrorMode {
+    None = 0,
+    Vertical = 1,
+    Horizontal = 2,
+    Both = 3,
+}
+
+impl MirrorMode {
+    pub fn to_i32(&self) -> i32 {
+        *self as i32
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 /// Image rotation
 pub enum Rotation {
     Rotate0 = 0,
@@ -143,7 +157,7 @@ pub struct CameraSettings {
     pub shutter_speed: u32,
     /// Exposure mode
     pub exposure_mode: ExposureMode,
-    /// Meterng Mode
+    /// Metering Mode
     pub metering_mode: MeteringMode,
     /// White Balance
     pub awb_mode: AwbMode,
