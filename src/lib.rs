@@ -493,12 +493,12 @@ impl SeriousCamera {
             // Flicker Avoid Mode
             let status = ffi::mmal_port_parameter_set_int32(
                 control,
-                ffi::MMAL_PARAMETER_EXPOSURE_MODE,
-                settings.exposure_mode.to_i32(),
+                ffi::MMAL_PARAMETER_FLICKER_AVOID,
+                settings.flicker_avoid.to_i32(),
             );
             if status != MMAL_STATUS_T::MMAL_SUCCESS {
                 return Err(MmalError::with_status(
-                    "Unable to set Exposure Mode".to_owned(),
+                    "Unable to set Flicker Avoid Mode".to_owned(),
                     status,
                 )
                 .into());
