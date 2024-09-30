@@ -5,30 +5,30 @@ use std::{thread, time};
 
 fn main() {
     // Set up logging to stdout
-    tracing_subscriber::fmt::init();
+    simple_logger::SimpleLogger::new().env().init().unwrap();
 
     let info = info().unwrap();
     if info.cameras.len() < 1 {
-        tracing::error!("Found 0 cameras. Exiting");
+        log::error!("Found 0 cameras. Exiting");
         // note that this doesn't run destructors
         ::std::process::exit(1);
     }
-    tracing::info!("{}", info);
+    log::info!("{}", info);
 
     serious(&info.cameras[0]);
 }
 
 fn serious(info: &CameraInfo) {
     let mut camera = SeriousCamera::new().unwrap();
-    tracing::info!("camera created");
+    log::info!("camera created");
     camera.set_camera_num(0).unwrap();
-    tracing::info!("camera number set");
+    log::info!("camera number set");
     camera.create_encoder().unwrap();
-    tracing::info!("encoder created");
+    log::info!("encoder created");
     camera.enable_control_port(true).unwrap();
-    tracing::info!("camera control port enabled");
+    log::info!("camera control port enabled");
     camera.set_camera_params(info).unwrap();
-    tracing::info!("camera params set");
+    log::info!("camera params set");
 
     let settings = CameraSettings {
         encoding: MMAL_ENCODING_RGB24,
@@ -41,20 +41,20 @@ fn serious(info: &CameraInfo) {
     };
 
     camera.set_camera_format(&settings).unwrap();
-    tracing::info!("set camera format");
+    log::info!("set camera format");
     camera.enable().unwrap();
-    tracing::info!("camera enabled");
+    log::info!("camera enabled");
     camera.create_pool().unwrap();
-    tracing::info!("pool created");
+    log::info!("pool created");
 
     camera.create_preview().unwrap();
-    tracing::info!("preview created");
+    log::info!("preview created");
     camera.connect_preview().unwrap();
-    tracing::info!("preview connected");
+    log::info!("preview connected");
     camera.enable_preview().unwrap();
-    tracing::info!("preview enabled");
+    log::info!("preview enabled");
 
-    tracing::info!("taking photo");
+    log::info!("taking photo");
 
     let sleep_duration = time::Duration::from_millis(2000);
     thread::sleep(sleep_duration);
@@ -68,8 +68,8 @@ fn serious(info: &CameraInfo) {
         .write_all(&buffer.get_bytes())
         .unwrap();
 
-    tracing::info!("Raw rgb bytes written to image.rgb");
-    tracing::info!("Try: convert -size 96x96 -depth 8 -colorspace RGB rgb:image.rgb image.png");
+    log::info!("Raw rgb bytes written to image.rgb");
+    log::info!("Try: convert -size 96x96 -depth 8 -colorspace RGB rgb:image.rgb image.png");
     // If imagemagick gives something like:
     //   convert-im6.q16: unexpected end-of-file `image.rgb': No such file or directory @ error/rgb.c/ReadRGBImage/239.
     // There is probably padding in the image. Check the width.

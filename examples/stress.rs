@@ -5,15 +5,15 @@ use std::{thread, time};
 
 fn main() {
     // Set up logging to stdout
-    tracing_subscriber::fmt::init();
+    simple_logger::SimpleLogger::new().env().init().unwrap();
 
     let info = info().unwrap();
     if info.cameras.len() < 1 {
-        tracing::error!("Found 0 cameras. Exiting");
+        log::error!("Found 0 cameras. Exiting");
         // note that this doesn't run destructors
         ::std::process::exit(1);
     }
-    tracing::info!("{}", info);
+    log::info!("{}", info);
 
     bench_jpegs_per_sec(10);
 }
@@ -52,7 +52,7 @@ fn bench_jpegs_per_sec(n: i32) {
         let images = 30;
         let (_, runtime) = time(|| bench_jpegs(images, &mut b));
         let images_per_sec = images as f64 / runtime;
-        tracing::info!(
+        log::info!(
             "{} images in {} sec, {:.2} images/sec",
             images,
             runtime,
@@ -60,7 +60,7 @@ fn bench_jpegs_per_sec(n: i32) {
         );
         runs.push(images_per_sec);
     }
-    tracing::info!(
+    log::info!(
         "Avg: {:.2} images/sec from {} runs",
         runs.iter().sum::<f64>() / (runs.len() as f64),
         runs.len()

@@ -54,7 +54,7 @@ impl fmt::Display for CameraInfo {
 
 /// Retrieves info on attached cameras
 pub fn info() -> Result<Info, CameraError> {
-    tracing::trace!("info()");
+    log::trace!("info()");
     init();
 
     unsafe {

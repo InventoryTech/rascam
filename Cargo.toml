@@ -19,12 +19,12 @@ libc = "0.2"
 parking_lot = "0.12"
 scopeguard = "1.0"
 futures = "0.3"
-tracing = "0.1"
+log = "0.4"
 strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]
 tokio = { version = "0.2", features = ["full"] }
-tracing-subscriber = "0.3"
+simple_logger = "5.0"
 
 [features]
 default = []

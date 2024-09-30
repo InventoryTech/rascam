@@ -25,8 +25,8 @@ rascam = "0.0.2"
 
 Check out the [SimpleCamera example](https://github.com/pedrosland/rascam/blob/master/examples/simple.rs) to get started quickly.
 
-This crate uses [tracing](https://crates.io/crates/tracing) to produce logging events. 
-If things are crashing or producing unexpected results, you can print the logs by adding the [tracing-subscriber](https://crates.io/crates/tracing-subscriber) crate to your project.
+This fork uses [log](https://crates.io/crates/log) to produce logging events. 
+If things are crashing or producing unexpected results, you can print the logs by adding the [simple_logger](https://crates.io/crates/simple_logger) crate to your project.
 Enable the logging by putting `tracing_subscriber::fmt::init();` at the top of your `main()` function. Set the `RUST_LOG` environment variable to `DEBUG`.
 For example, this can be done by calling cargo like this: `$ RUST_LOG=DEBUG cargo run`.
 

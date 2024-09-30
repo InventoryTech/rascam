@@ -120,7 +120,7 @@ impl Drop for BufferGuard {
     /// Unlocks and releases the buffer header. Gets new buffer from pool and passes it to
     /// the camera.
     fn drop(&mut self) {
-        tracing::trace!("drop()");
+        log::trace!("drop()");
         unsafe {
             ffi::mmal_buffer_header_mem_unlock(self.buffer);
 
@@ -138,7 +138,7 @@ impl Drop for BufferGuard {
                 }
 
                 if new_buffer.is_null() || status != MMAL_STATUS_T::MMAL_SUCCESS {
-                    tracing::debug!("Unable to return the buffer to the port");
+                    log::debug!("Unable to return the buffer to the port");
                 }
             }
 
@@ -146,7 +146,7 @@ impl Drop for BufferGuard {
                 if !(*self.port).userdata.is_null() {
                     drop_port_userdata(self.port);
                 }
-                tracing::debug!("complete");
+                log::debug!("complete");
             }
         }
     }
@@ -178,7 +178,7 @@ pub struct SeriousCamera {
 
 impl SeriousCamera {
     pub fn new() -> Result<SeriousCamera, CameraError> {
-        tracing::trace!("new()");
+        log::trace!("new()");
         init();
         unsafe {
             let mut camera_ptr = MaybeUninit::uninit();
@@ -214,7 +214,7 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_num(&mut self, num: u8) -> Result<(), CameraError> {
-        tracing::trace!("set_camera_num()");
+        log::trace!("set_camera_num()");
         unsafe {
             let mut param: ffi::MMAL_PARAMETER_INT32_T = mem::zeroed();
             param.hdr.id = ffi::MMAL_PARAMETER_CAMERA_NUM as u32;
@@ -232,7 +232,7 @@ impl SeriousCamera {
     }
 
     pub fn create_encoder(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("create_encoder()");
+        log::trace!("create_encoder()");
         unsafe {
             let mut encoder_ptr = MaybeUninit::uninit();
             let component: *const c_char =
@@ -251,7 +251,7 @@ impl SeriousCamera {
     }
 
     pub fn connect_encoder(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("connect_encoder()");
+        log::trace!("connect_encoder()");
         unsafe {
             let mut connection_ptr = MaybeUninit::uninit();
             let status = ffi::mmal_connection_create(
@@ -286,7 +286,7 @@ impl SeriousCamera {
     }
 
     pub fn enable_control_port(&mut self, get_buffers: bool) -> Result<(), CameraError> {
-        tracing::trace!("enable_control_port()");
+        log::trace!("enable_control_port()");
         unsafe {
             let cb: ffi::MMAL_PORT_BH_CB_T = if get_buffers {
                 Some(camera_buffer_callback)
@@ -307,7 +307,7 @@ impl SeriousCamera {
     }
 
     pub fn enable_encoder_port(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("enable_encoder_port()");
+        log::trace!("enable_encoder_port()");
         unsafe {
             let status = ffi::mmal_port_enable(
                 *self.encoder.unwrap().as_ref().output.offset(0),
@@ -326,7 +326,7 @@ impl SeriousCamera {
     }
 
     pub unsafe fn set_buffer_callback(&mut self, sender: SenderKind) {
-        tracing::trace!("set_buffer_callback()");
+        log::trace!("set_buffer_callback()");
         let port = if self.use_encoder {
             *self.encoder.unwrap().as_ref().output.offset(0)
         } else {
@@ -347,7 +347,7 @@ impl SeriousCamera {
     }
 
     pub fn enable_still_port(&mut self) -> Result<u8, ffi::MMAL_STATUS_T::Type> {
-        tracing::trace!("enable_still_port()");
+        log::trace!("enable_still_port()");
         unsafe {
             let status = ffi::mmal_port_enable(
                 *self.camera.as_ref().output.offset(2),
@@ -364,7 +364,7 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_params(&mut self, info: &CameraInfo) -> Result<(), CameraError> {
-        tracing::trace!("set_camera_params()");
+        log::trace!("set_camera_params()");
         unsafe {
             let mut cfg: ffi::MMAL_PARAMETER_CAMERA_CONFIG_T = mem::zeroed();
             cfg.hdr.id = ffi::MMAL_PARAMETER_CAMERA_CONFIG as u32;
@@ -395,7 +395,7 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_format(&mut self, settings: &CameraSettings) -> Result<(), CameraError> {
-        tracing::trace!("set_camera_params()");
+        log::trace!("set_camera_params()");
         unsafe {
             self.use_encoder = settings.use_encoder;
             let mut encoding = settings.encoding;
@@ -807,7 +807,7 @@ impl SeriousCamera {
     }
 
     pub fn enable(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("enable()");
+        log::trace!("enable()");
 
         unsafe {
             let status = ffi::mmal_component_enable(self.camera.as_ptr());
@@ -825,7 +825,7 @@ impl SeriousCamera {
     }
 
     pub fn enable_encoder(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("enable_encoder()");
+        log::trace!("enable_encoder()");
         unsafe {
             let status = ffi::mmal_port_enable(self.encoder.unwrap().as_ref().control, None);
             match status {
@@ -855,7 +855,7 @@ impl SeriousCamera {
     }
 
     pub fn enable_preview(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("enable_preview()");
+        log::trace!("enable_preview()");
         unsafe {
             let status = ffi::mmal_component_enable(&mut *self.preview.unwrap().as_ptr());
             match status {
@@ -870,7 +870,7 @@ impl SeriousCamera {
     }
 
     pub fn create_pool(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("create_pool()");
+        log::trace!("create_pool()");
         unsafe {
             let port_ptr = if self.use_encoder {
                 let output = self.encoder.unwrap().as_ref().output;
@@ -903,7 +903,7 @@ impl SeriousCamera {
     }
 
     pub fn create_preview(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("create_preview()");
+        log::trace!("create_preview()");
         unsafe {
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiPreview.c#L70
             // https://github.com/waveform80/picamera/issues/22
@@ -930,7 +930,7 @@ impl SeriousCamera {
     }
 
     pub fn connect_preview(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("connect_preview()");
+        log::trace!("connect_preview()");
         unsafe {
             let mut connection_ptr = MaybeUninit::uninit();
 
@@ -966,12 +966,12 @@ impl SeriousCamera {
         &mut self,
         buffer_port_ptr: *mut ffi::MMAL_PORT_T,
     ) -> Result<(), CameraError> {
-        tracing::trace!("send_buffers()");
+        log::trace!("send_buffers()");
 
         let num = ffi::mmal_queue_length(self.pool.unwrap().as_ref().queue as *mut _);
-        tracing::debug!("got length {}", num);
+        log::debug!("got length {}", num);
 
-        tracing::debug!(
+        log::debug!(
             "assigning pool of {} buffers size {}",
             (*buffer_port_ptr).buffer_num,
             (*buffer_port_ptr).buffer_size
@@ -979,7 +979,7 @@ impl SeriousCamera {
 
         for i in 0..num {
             let buffer = ffi::mmal_queue_get(self.pool.unwrap().as_ref().queue);
-            tracing::debug!("got buffer {}", i);
+            log::debug!("got buffer {}", i);
 
             if buffer.is_null() {
                 return Err(MmalError::with_status(
@@ -1007,7 +1007,7 @@ impl SeriousCamera {
         buffer_port_ptr: &mut *mut ffi::MMAL_PORT_T,
         is_async: bool,
     ) -> Result<ReceiverKind, CameraError> {
-        tracing::trace!("do_take()");
+        log::trace!("do_take()");
         unsafe {
             let mut status = ffi::mmal_port_parameter_set_uint32(
                 self.camera.as_ref().control,
@@ -1077,7 +1077,7 @@ impl SeriousCamera {
 
             match status {
                 MMAL_STATUS_T::MMAL_SUCCESS => {
-                    tracing::debug!("Started capture");
+                    log::debug!("Started capture");
 
                     Ok(receiver)
                 }
@@ -1091,7 +1091,7 @@ impl SeriousCamera {
     }
 
     pub fn take(&mut self) -> Result<mpsc::Receiver<Option<BufferGuard>>, CameraError> {
-        tracing::trace!("take()");
+        log::trace!("take()");
         unsafe {
             self.mutex.raw().lock();
         }
@@ -1122,7 +1122,7 @@ impl SeriousCamera {
     pub fn take_async(
         &mut self,
     ) -> Result<futures::channel::mpsc::Receiver<BufferGuard>, CameraError> {
-        tracing::trace!("take_async()");
+        log::trace!("take_async()");
         unsafe {
             self.mutex.raw().lock();
         }
@@ -1161,7 +1161,7 @@ unsafe extern "C" fn camera_buffer_callback(
     let pdata_ptr: *mut Userdata = (*port).userdata as *mut Userdata;
     let mut complete = false;
 
-    tracing::debug!("I'm called from C. buffer length: {}", bytes_to_write);
+    log::debug!("I'm called from C. buffer length: {}", bytes_to_write);
 
     if !pdata_ptr.is_null() {
         let userdata: &mut Userdata = &mut *pdata_ptr;
@@ -1200,13 +1200,13 @@ unsafe extern "C" fn camera_buffer_callback(
                 SenderKind::AsyncSender(sender) => sender.close_channel(),
                 SenderKind::SyncSender(sender) => {
                     if let Err(_err) = sender.send(None) {
-                        tracing::debug!("Got err sending None: {}", _err);
+                        log::debug!("Got err sending None: {}", _err);
                     }
                 }
             };
         }
     } else {
-        tracing::debug!("Received a camera still buffer callback with no state");
+        log::debug!("Received a camera still buffer callback with no state");
     }
 }
 
@@ -1216,7 +1216,7 @@ unsafe extern "C" fn camera_control_callback(
 ) {
     // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStillYUV.c#L525
 
-    tracing::debug!("Camera control callback  cmd=0x{:08x}", (*buffer).cmd);
+    log::debug!("Camera control callback  cmd=0x{:08x}", (*buffer).cmd);
 
     if (*buffer).cmd == ffi::MMAL_EVENT_PARAMETER_CHANGED {
         let param: *mut ffi::MMAL_EVENT_PARAMETER_CHANGED_T =
@@ -1225,7 +1225,7 @@ unsafe extern "C" fn camera_control_callback(
             let settings_ptr: *mut ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T =
                 param as *mut ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T;
             let _settings: ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T = *settings_ptr;
-            tracing::debug!(
+            log::debug!(
                 "Exposure now {}, analog gain {}/{}, digital gain {}/{}",
                 _settings.exposure,
                 _settings.analog_gain.num,
@@ -1233,7 +1233,7 @@ unsafe extern "C" fn camera_control_callback(
                 _settings.digital_gain.num,
                 _settings.digital_gain.den
             );
-            tracing::debug!(
+            log::debug!(
                 "AWB R={}/{}, B={}/{}",
                 _settings.awb_red_gain.num,
                 _settings.awb_red_gain.den,
@@ -1242,11 +1242,11 @@ unsafe extern "C" fn camera_control_callback(
             );
         }
     } else if (*buffer).cmd == ffi::MMAL_EVENT_ERROR {
-        tracing::debug!(
+        log::debug!(
             "No data received from sensor. Check all connections, including the Sunny one on the camera board"
         );
     } else {
-        tracing::debug!(
+        log::debug!(
             "Received unexpected camera control callback event, {:08x}",
             (*buffer).cmd
         );
@@ -1266,37 +1266,37 @@ impl Drop for SeriousCamera {
             }
             if self.encoder_enabled {
                 ffi::mmal_component_disable(self.encoder.unwrap().as_ptr());
-                tracing::debug!("encoder disabled");
+                log::debug!("encoder disabled");
             }
             if self.enabled {
                 ffi::mmal_component_disable(self.camera.as_ptr());
-                tracing::debug!("camera disabled");
+                log::debug!("camera disabled");
             }
             if self.encoder_output_port_enabled {
                 ffi::mmal_port_disable(*self.encoder.unwrap().as_ref().output.offset(0));
-                tracing::debug!("encoder output port disabled");
+                log::debug!("encoder output port disabled");
             }
             if self.encoder_control_port_enabled {
                 ffi::mmal_port_disable(self.encoder.unwrap().as_ref().control);
-                tracing::debug!("encoder control port disabled");
+                log::debug!("encoder control port disabled");
             }
             if self.camera_port_enabled {
                 ffi::mmal_port_disable(self.camera.as_ref().control);
-                tracing::debug!("camera port disabled");
+                log::debug!("camera port disabled");
             }
             if self.still_port_enabled {
                 ffi::mmal_port_disable(*self.camera.as_ref().output.offset(2));
-                tracing::debug!("still port disabled");
+                log::debug!("still port disabled");
             }
             if self.preview_connection.is_some() {
                 ffi::mmal_connection_disable(self.preview_connection.unwrap().as_ptr());
                 ffi::mmal_connection_destroy(self.preview_connection.unwrap().as_ptr());
-                tracing::debug!("preview connection destroyed");
+                log::debug!("preview connection destroyed");
             }
             if self.preview.is_some() {
                 ffi::mmal_component_disable(self.preview.unwrap().as_ptr());
                 ffi::mmal_component_destroy(self.preview.unwrap().as_ptr());
-                tracing::debug!("preview destroyed");
+                log::debug!("preview destroyed");
             }
             if self.pool.is_some() {
                 let port_ptr = if self.use_encoder {
@@ -1309,14 +1309,14 @@ impl Drop for SeriousCamera {
                 // port doesn't need to be disabled because it is already
                 // previously disabled in previous if statements
                 ffi::mmal_port_pool_destroy(port_ptr, self.pool.unwrap().as_ptr());
-                tracing::debug!("pool destroyed");
+                log::debug!("pool destroyed");
             }
 
             ffi::mmal_component_destroy(self.camera.as_ptr());
-            tracing::debug!("camera destroyed");
+            log::debug!("camera destroyed");
             if self.encoder_created {
                 ffi::mmal_component_destroy(self.encoder.unwrap().as_ptr());
-                tracing::debug!("encoder destroyed");
+                log::debug!("encoder destroyed");
             }
         }
     }
@@ -1350,7 +1350,7 @@ pub struct SimpleCamera {
 
 impl SimpleCamera {
     pub fn new(info: CameraInfo) -> Result<SimpleCamera, CameraError> {
-        tracing::trace!("new()");
+        log::trace!("new()");
         let sc = SeriousCamera::new()?;
 
         Ok(SimpleCamera {
@@ -1361,7 +1361,7 @@ impl SimpleCamera {
     }
 
     pub fn configure(&mut self, new_settings: &CameraSettings) {
-        tracing::trace!("configure()");
+        log::trace!("configure()");
         self.settings = *new_settings;
 
         if self.settings.width == 0 {
@@ -1370,7 +1370,7 @@ impl SimpleCamera {
         if self.settings.height == 0 {
             self.settings.height = self.info.max_height;
         }
-        tracing::trace!("config = {}", self.settings);
+        log::trace!("config = {}", self.settings);
     }
 
     pub fn get_config(self) -> CameraSettings {
@@ -1382,7 +1382,7 @@ impl SimpleCamera {
     }
 
     pub fn activate(&mut self) -> Result<(), CameraError> {
-        tracing::trace!("activate()");
+        log::trace!("activate()");
         let camera = &mut self.serious;
 
         camera.set_camera_num(0)?;
@@ -1410,7 +1410,7 @@ impl SimpleCamera {
     ///
     /// If there is an error
     pub fn take_one_writer(&mut self, writer: &mut dyn Write) -> Result<(), CameraError> {
-        tracing::trace!("take_one_writer()");
+        log::trace!("take_one_writer()");
         let receiver = self.serious.take()?;
 
         loop {
@@ -1433,7 +1433,7 @@ impl SimpleCamera {
     ///
     /// If successful then returns `Ok` with a `Vec<u8>` containing the bytes of the image.
     pub fn take_one(&mut self) -> Result<Vec<u8>, CameraError> {
-        tracing::trace!("take_one()");
+        log::trace!("take_one()");
         let mut v = Vec::new();
         self.take_one_writer(&mut v)?;
         Ok(v)
@@ -1443,7 +1443,7 @@ impl SimpleCamera {
     ///
     /// Returns a future result where `Ok` contains a `Vec<u8>` containing the bytes of the image.
     pub async fn take_one_async(&mut self) -> Result<Vec<u8>, CameraError> {
-        tracing::trace!("take_one_async()");
+        log::trace!("take_one_async()");
         let receiver = self.serious.take_async()?;
         let future = receiver
             .fold(Vec::new(), |mut acc, buf| async move {
