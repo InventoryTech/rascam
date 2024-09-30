@@ -1,8 +1,11 @@
+use libc::c_uint;
 use mmal_sys as ffi;
-
-use std::os::raw::c_uint;
+use std::fmt;
+use strum::{Display, EnumString};
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 pub enum ISO {
     IsoAuto = 0,
     Iso125 = 125,
@@ -29,6 +32,8 @@ impl ISO {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 pub enum MeteringMode {
     // values from MMAL_PARAM_EXPOSUREMETERINGMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
     Average = 0,
@@ -44,6 +49,8 @@ impl MeteringMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 // values from MMAL_PARAM_EXPOSUREMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
 pub enum ExposureMode {
     Off = 0,
@@ -65,6 +72,8 @@ impl ExposureMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 /// Auto White Balance Mode
 // no sense supporting Off if we don't also support awb_gains_r & awb_gains_b
 // values from MMAL_PARAM_AWBMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
@@ -85,6 +94,8 @@ impl AwbMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 /// Flicker reduction mode
 // values from MMAL_PARAM_FLICKERAVOID_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
 pub enum FlickerAvoidMode {
@@ -101,6 +112,8 @@ impl FlickerAvoidMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 pub enum MirrorMode {
     None = 0,
     Vertical = 1,
@@ -115,6 +128,8 @@ impl MirrorMode {
 }
 
 #[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 /// Image rotation
 pub enum Rotation {
     Rotate0 = 0,
@@ -208,4 +223,47 @@ impl Default for CameraSettings {
             use_encoder: true,
         }
     }
+}
+
+impl fmt::Display for CameraSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
+        writeln!(f)?;
+        // Modes
+        writeln!(f, "Modes:")?;
+        writeln!(f, "  Exposure Mode: {}", self.exposure_mode)?;
+        writeln!(f, "  Metering Mode: {}", self.metering_mode)?;
+        writeln!(f, "  Flicker Mode:  {}", self.flicker_avoid)?;
+        writeln!(f, "  AWB Mode:      {}", self.awb_mode)?;
+        // Exposure settings
+        writeln!(f, "Exposure:")?;
+        writeln!(f, "  ISO:            {}", self.iso)?;
+        writeln!(f, "  Shutter Speed:  {}", self.shutter_speed)?;
+        writeln!(f, "  Compensation:   {}", self.exposure_compensation)?;
+        // image output settings
+        writeln!(f, "Image Output:")?;
+        writeln!(f, "  Encoding:       {}", u32_to_string(self.encoding))?;
+        writeln!(f, "  Brightness:     {}", self.brightness)?;
+        writeln!(f, "  Contrast:       {}", self.contrast)?;
+        writeln!(f, "  Saturation:     {}", self.saturation)?;
+        writeln!(f, "  Sharpness:      {}", self.sharpness)?;
+        writeln!(f, "  Width:          {}", self.width)?;
+        writeln!(f, "  Height:         {}", self.height)?;
+        writeln!(f, "  Rotation:       {}", self.rotation)?;
+        writeln!(f, "  V Flip:         {}", self.vertical_flip)?;
+        writeln!(f, "  H Flip:         {}", self.horizontal_flip)
+    }
+}
+
+fn u32_to_string(input: u32) -> String {
+    let bytes = [
+        (input & 0xFF) as u8,
+        ((input >> 8) & 0xFF) as u8,
+        ((input >> 16) & 0xFF) as u8,
+        ((input >> 24) & 0xFF) as u8,
+    ];
+    bytes
+        .iter()
+        .filter(|&&b| b != 0) // Filter out null characters
+        .map(|&b| b as char) // Convert remaining bytes to chars
+        .collect()
 }

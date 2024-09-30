@@ -1,3 +1,5 @@
+use crate::error::{CameraError, MmalError};
+use crate::init::init;
 use ffi::MMAL_STATUS_T;
 use mmal_sys as ffi;
 use std::ffi::CStr;
@@ -5,9 +7,6 @@ use std::fmt;
 use std::mem;
 use std::os::raw::c_char;
 use std::string::String;
-
-use crate::error::{CameraError, MmalError};
-use crate::init::init;
 
 /// Contains information about attached cameras.
 pub struct Info {
@@ -55,6 +54,7 @@ impl fmt::Display for CameraInfo {
 
 /// Retrieves info on attached cameras
 pub fn info() -> Result<Info, CameraError> {
+    log::trace!("info()");
     init();
 
     unsafe {
