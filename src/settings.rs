@@ -1,3 +1,15 @@
+/// Setting for MMAL camera
+///
+/// Not supported:
+/// 1) Anything video related
+/// 2) Flash info, modes and types
+/// 3) Red Eye
+/// 4) Image FX
+/// 5) Autofocus
+/// 6) Face detect
+/// 7) Dynamic range compression (DRC)
+/// 8) Time Stamp modes
+///
 use libc::c_uint;
 use mmal_sys as ffi;
 use std::fmt;
@@ -56,10 +68,12 @@ impl ISO {
 #[derive(EnumString, Display)]
 pub enum MeteringMode {
     // values from MMAL_PARAM_EXPOSUREMETERINGMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
-    Average = 0,
-    Spot = 1,
-    Backlit = 2,
-    Matrix = 3,
+    Average =
+        ffi::MMAL_PARAM_EXPOSUREMETERINGMODE_T_MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE as isize,
+    Spot = ffi::MMAL_PARAM_EXPOSUREMETERINGMODE_T_MMAL_PARAM_EXPOSUREMETERINGMODE_SPOT as isize,
+    Backlit =
+        ffi::MMAL_PARAM_EXPOSUREMETERINGMODE_T_MMAL_PARAM_EXPOSUREMETERINGMODE_BACKLIT as isize,
+    Matrix = ffi::MMAL_PARAM_EXPOSUREMETERINGMODE_T_MMAL_PARAM_EXPOSUREMETERINGMODE_MATRIX as isize,
 }
 
 impl MeteringMode {
@@ -73,16 +87,19 @@ impl MeteringMode {
 #[derive(EnumString, Display)]
 // values from MMAL_PARAM_EXPOSUREMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
 pub enum ExposureMode {
-    Off = 0,
-    Auto = 1,
-    Night = 2,
-    NightPreview = 3,
-    Backlight = 4,
-    Spotlight = 5,
-    Sports = 6,
-    Snow = 7,
-    Beach = 8,
-    VeryLong = 9,
+    Off = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_OFF as isize,
+    Auto = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_AUTO as isize,
+    Night = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_NIGHT as isize,
+    NightPreview = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_NIGHTPREVIEW as isize,
+    Backlight = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_BACKLIGHT as isize,
+    Spotlight = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_SPOTLIGHT as isize,
+    Sports = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_SPORTS as isize,
+    Snow = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_SNOW as isize,
+    Beach = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_BEACH as isize,
+    VeryLong = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_VERYLONG as isize,
+    FixedFPS = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_FIXEDFPS as isize,
+    AntiShake = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_ANTISHAKE as isize,
+    FireWorks = ffi::MMAL_PARAM_EXPOSUREMODE_T_MMAL_PARAM_EXPOSUREMODE_FIREWORKS as isize,
 }
 
 impl ExposureMode {
@@ -95,21 +112,24 @@ impl ExposureMode {
 // use the strum crate to derive FromStr and Display
 #[derive(EnumString, Display)]
 /// Auto White Balance Mode
-// no sense supporting Off if we don't also support awb_gains_r & awb_gains_b
 // values from MMAL_PARAM_AWBMODE_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
 pub enum AwbMode {
-    Auto = 1,
-    Sunlight = 2,
-    Cloud = 3,
-    Shade = 4,
-    Tungsten = 5,
-    Fluorescent = 6,
-    Incandescent = 7,
+    Auto = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_AUTO as isize,
+    Sunlight = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_SUNLIGHT as isize,
+    Cloud = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_CLOUDY as isize,
+    Shade = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_SHADE as isize,
+    Tungsten = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_TUNGSTEN as isize,
+    Fluorescent = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_FLUORESCENT as isize,
+    Incandescent = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_INCANDESCENT as isize,
+    Flash = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_FLASH as isize,
+    Horizon = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_HORIZON as isize,
+    Greyworld = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_GREYWORLD as isize,
+    Off = ffi::MMAL_PARAM_AWBMODE_T_MMAL_PARAM_AWBMODE_OFF as isize,
 }
 
 impl AwbMode {
-    pub fn to_i32(&self) -> i32 {
-        *self as i32
+    pub fn to_u32(&self) -> u32 {
+        *self as u32
     }
 }
 
@@ -119,10 +139,10 @@ impl AwbMode {
 /// Flicker reduction mode
 // values from MMAL_PARAM_FLICKERAVOID_T in https://github.com/raspberrypi/userland/blob/master/interface/mmal/mmal_parameters_camera.h
 pub enum FlickerAvoidMode {
-    Off = 0,
-    Auto = 1,
-    Avoid50Hz = 2,
-    Avoid60Hz = 3,
+    Off = ffi::MMAL_PARAM_FLICKERAVOID_T_MMAL_PARAM_FLICKERAVOID_OFF as isize,
+    Auto = ffi::MMAL_PARAM_FLICKERAVOID_T_MMAL_PARAM_FLICKERAVOID_AUTO as isize,
+    Avoid50Hz = ffi::MMAL_PARAM_FLICKERAVOID_T_MMAL_PARAM_FLICKERAVOID_50HZ as isize,
+    Avoid60Hz = ffi::MMAL_PARAM_FLICKERAVOID_T_MMAL_PARAM_FLICKERAVOID_60HZ as isize,
 }
 
 impl FlickerAvoidMode {
@@ -135,10 +155,10 @@ impl FlickerAvoidMode {
 // use the strum crate to derive FromStr and Display
 #[derive(EnumString, Display)]
 pub enum MirrorMode {
-    None = 0,
-    Vertical = 1,
-    Horizontal = 2,
-    Both = 3,
+    None = ffi::MMAL_PARAM_MIRROR_T_MMAL_PARAM_MIRROR_NONE as isize,
+    Vertical = ffi::MMAL_PARAM_MIRROR_T_MMAL_PARAM_MIRROR_VERTICAL as isize,
+    Horizontal = ffi::MMAL_PARAM_MIRROR_T_MMAL_PARAM_MIRROR_HORIZONTAL as isize,
+    Both = ffi::MMAL_PARAM_MIRROR_T_MMAL_PARAM_MIRROR_BOTH as isize,
 }
 
 impl MirrorMode {

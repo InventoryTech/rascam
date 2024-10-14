@@ -20,6 +20,7 @@ parking_lot = "0.12"
 scopeguard = "1.0"
 futures = "0.3"
 log = "0.4"
+semver = "1.0"
 strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]

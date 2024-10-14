@@ -8,12 +8,15 @@
 #![allow(dead_code)]
 
 use mmal_sys as ffi;
+use mmal_sys::MMAL_VERSION_MAJOR;
+use mmal_sys::MMAL_VERSION_MINOR;
 #[macro_use(defer_on_unwind)]
 extern crate scopeguard;
 use ffi::{MMAL_RATIONAL_T, MMAL_STATUS_T};
 use futures::future::FutureExt;
 use futures::stream::StreamExt;
 use parking_lot::{lock_api::RawMutex, Mutex};
+use semver::Version;
 use std::ffi::CStr;
 use std::io::Write;
 use std::mem;
@@ -53,6 +56,10 @@ pub use ffi::MMAL_ENCODING_PNG;
 pub use ffi::MMAL_ENCODING_OPAQUE;
 
 pub use ffi::MMAL_ENCODING_RGB24;
+
+pub fn mmal_api_version() -> Version {
+    Version::new(MMAL_VERSION_MAJOR as u64, MMAL_VERSION_MINOR as u64, 0)
+}
 
 struct Userdata {
     pool: NonNull<ffi::MMAL_POOL_T>,
@@ -505,10 +512,10 @@ impl SeriousCamera {
             }
 
             // Awb Mode
-            let status = ffi::mmal_port_parameter_set_int32(
+            let status = ffi::mmal_port_parameter_set_uint32(
                 control,
                 ffi::MMAL_PARAMETER_AWB_MODE,
-                settings.awb_mode.to_i32(),
+                settings.awb_mode.to_u32(),
             );
             if status != MMAL_STATUS_T::MMAL_SUCCESS {
                 return Err(MmalError::with_status(
