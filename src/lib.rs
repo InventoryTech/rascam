@@ -332,6 +332,11 @@ impl SeriousCamera {
         }
     }
 
+    /// Set callback function to be called when there is data from the camera.
+    ///
+    /// # Safety
+    /// This function will be passed to C so you are responsible for it.
+    /// Make no assumptions about when this will be called or what thread it will be called from.
     pub unsafe fn set_buffer_callback(&mut self, sender: SenderKind) {
         log::trace!("set_buffer_callback()");
         let port = if self.use_encoder {
@@ -456,7 +461,11 @@ impl SeriousCamera {
                 settings.shutter_speed,
             );
             if status != MMAL_STATUS_T::MMAL_SUCCESS {
-                return Err(MmalError::with_status("Unable to set ISO".to_owned(), status).into());
+                return Err(MmalError::with_status(
+                    "Unable to set Shutter Speed".to_owned(),
+                    status,
+                )
+                .into());
             }
 
             // ISO
@@ -505,7 +514,7 @@ impl SeriousCamera {
             );
             if status != MMAL_STATUS_T::MMAL_SUCCESS {
                 return Err(MmalError::with_status(
-                    "Unable to set Exposure Mode".to_owned(),
+                    "Unable to set Metering Mode".to_owned(),
                     status,
                 )
                 .into());
@@ -519,7 +528,7 @@ impl SeriousCamera {
             );
             if status != MMAL_STATUS_T::MMAL_SUCCESS {
                 return Err(MmalError::with_status(
-                    "Unable to set Exposure Mode".to_owned(),
+                    "Unable to set Auto White Balance Mode".to_owned(),
                     status,
                 )
                 .into());
@@ -557,7 +566,7 @@ impl SeriousCamera {
                 ) != MMAL_STATUS_T::MMAL_SUCCESS
                 {
                     return Err(MmalError::with_status(
-                        "Unable to set V H Mirror".to_owned(),
+                        "Unable to set V H Mirroring".to_owned(),
                         status,
                     )
                     .into());
@@ -645,7 +654,7 @@ impl SeriousCamera {
             }
 
             let mut format = preview_port.format;
-            if self.use_encoder {
+            if !self.use_encoder {
                 (*format).encoding = ffi::MMAL_ENCODING_OPAQUE;
             } else {
                 (*format).encoding = encoding;
@@ -694,7 +703,7 @@ impl SeriousCamera {
 
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStillYUV.c#L799
 
-            if self.use_encoder {
+            if !self.use_encoder {
                 (*format).encoding = ffi::MMAL_ENCODING_OPAQUE;
             } else {
                 (*format).encoding = encoding;
@@ -785,8 +794,8 @@ impl SeriousCamera {
 
             if encoding == ffi::MMAL_ENCODING_JPEG || encoding == ffi::MMAL_ENCODING_MJPEG {
                 // Set the JPEG quality level
-                let jpeg_quality = match settings.quality {
-                    0..=100 => settings.quality,
+                let jpeg_quality = match settings.jpeg_quality {
+                    0..=100 => settings.jpeg_quality,
                     _ => DEFAULT_JPEG_QUALITY,
                 };
                 status = ffi::mmal_port_parameter_set_uint32(
@@ -831,6 +840,29 @@ impl SeriousCamera {
 
             Ok(())
         }
+    }
+
+    pub fn set_awb_gain(&mut self, red_gain: f32, blue_gain: f32) -> Result<(), CameraError> {
+        let mut param: ffi::MMAL_PARAMETER_AWB_GAINS_T = unsafe { mem::zeroed() };
+        param.hdr.id = ffi::MMAL_PARAMETER_CUSTOM_AWB_GAINS as u32;
+        param.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_AWB_GAINS_T>() as u32;
+        param.r_gain.num = (red_gain * 65536.0).round() as i32;
+        param.b_gain.num = (blue_gain * 65536.0).round() as i32;
+        param.r_gain.den = 65536;
+        param.b_gain.den = 65536;
+        let status =
+            unsafe { ffi::mmal_port_parameter_set(self.camera.as_ref().control, &param.hdr) };
+        match status {
+            ffi::MMAL_STATUS_T::MMAL_SUCCESS => Ok(()),
+            status => {
+                Err(MmalError::with_status("Unable to set awb gain".to_owned(), status).into())
+            }
+        }
+    }
+
+    pub fn get_awb_gain(&mut self) -> Result<(f32, f32), CameraError> {
+        // TODO Current only return a dummy values,
+        Ok((1.0, 1.0))
     }
 
     pub fn enable(&mut self) -> Result<(), CameraError> {
@@ -1052,11 +1084,17 @@ impl SeriousCamera {
 
             if self.use_encoder {
                 if !self.encoder_output_port_enabled {
-                    self.enable_encoder_port().unwrap();
+                    match self.enable_encoder_port() {
+                        Ok(()) => self.encoder_output_port_enabled = true,
+                        Err(e) => log::error!("{:?}", e),
+                    }
                 }
             } else {
                 if !self.still_port_enabled {
-                    self.enable_still_port().unwrap();
+                    match self.enable_still_port() {
+                        Ok(_) => self.still_port_enabled = true,
+                        Err(e) => log::error!("{:?}", e),
+                    }
                 }
             }
 

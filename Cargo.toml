@@ -17,14 +17,14 @@ edition = "2018"
 mmal-sys = "0.1.0-3"
 libc = "0.2"
 parking_lot = "0.12"
-scopeguard = "1.0"
+scopeguard = "1.2"
 futures = "0.3"
 log = "0.4"
 semver = "1.0"
 strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1.40", features = ["full"] }
 simple_logger = "5.0"
 
 [features]
