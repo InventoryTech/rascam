@@ -27,6 +27,7 @@ use std::ptr::NonNull;
 use std::slice;
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::time::Duration;
 
 mod error;
 mod info;
@@ -185,7 +186,7 @@ pub struct SeriousCamera {
 
 impl SeriousCamera {
     pub fn new() -> Result<SeriousCamera, CameraError> {
-        log::trace!("new()");
+        log::trace!("SeriousCamera new()");
         init();
         unsafe {
             let mut camera_ptr = MaybeUninit::uninit();
@@ -435,22 +436,6 @@ impl SeriousCamera {
 
             let control = self.camera.as_ref().control;
 
-            // Sensor Mode
-            match ffi::mmal_port_parameter_set_uint32(
-                control,
-                ffi::MMAL_PARAMETER_CAMERA_CUSTOM_SENSOR_CONFIG,
-                settings.sensor_mode.to_u32(),
-            ) {
-                MMAL_STATUS_T::MMAL_SUCCESS => (),
-                status => {
-                    return Err(MmalError::with_status(
-                        "Unable to set Sensor Mode".to_owned(),
-                        status,
-                    )
-                    .into())
-                }
-            };
-
             // Shutter speed (in microseconds)
             let status = ffi::mmal_port_parameter_set_uint32(
                 control,
@@ -651,7 +636,7 @@ impl SeriousCamera {
             }
 
             let mut format = preview_port.format;
-            if !self.use_encoder {
+            if self.use_encoder {
                 (*format).encoding = ffi::MMAL_ENCODING_OPAQUE;
             } else {
                 (*format).encoding = encoding;
@@ -700,7 +685,7 @@ impl SeriousCamera {
 
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStillYUV.c#L799
 
-            if !self.use_encoder {
+            if self.use_encoder {
                 (*format).encoding = ffi::MMAL_ENCODING_OPAQUE;
             } else {
                 (*format).encoding = encoding;
@@ -1229,14 +1214,17 @@ unsafe extern "C" fn camera_buffer_callback(
                         .unwrap();
                 }
                 SenderKind::SyncSender(sender) => {
-                    sender
-                        .send(Some(BufferGuard::new(
-                            port,
-                            buffer,
-                            userdata.pool,
-                            complete,
-                        )))
-                        .unwrap();
+                    log::debug!("camera_buffer_callback() sending {} bytes", bytes_to_write);
+                    if let Err(e) = sender.try_send(Some(BufferGuard::new(
+                        port,
+                        buffer,
+                        userdata.pool,
+                        complete,
+                    ))) {
+                        log::error!("camera_buffer_callback() sending error: {}", e);
+                    } else {
+                        log::debug!("camera_buffer_callback() sent {} bytes", bytes_to_write);
+                    }
                 }
             }
         } else {
@@ -1394,7 +1382,7 @@ pub struct SimpleCamera {
 
 impl SimpleCamera {
     pub fn new(info: CameraInfo) -> Result<SimpleCamera, CameraError> {
-        log::trace!("new()");
+        log::trace!("SimpleCamera new()");
         let sc = SeriousCamera::new()?;
 
         Ok(SimpleCamera {
@@ -1453,20 +1441,41 @@ impl SimpleCamera {
     /// Captures a single image from the camera synchronously and writes it to the given `Write` trait.
     ///
     /// If there is an error
-    pub fn take_one_writer(&mut self, writer: &mut dyn Write) -> Result<(), CameraError> {
+    pub fn take_one_writer(
+        &mut self,
+        writer: &mut dyn Write,
+        timeout: Duration,
+    ) -> Result<(), CameraError> {
         log::trace!("take_one_writer()");
         let receiver = self.serious.take()?;
+        log::trace!("take_one_write() - got receiver");
 
         loop {
-            let result = receiver.recv()?;
-            match result {
-                Some(buf) => {
-                    writer.write_all(buf.get_bytes())?;
+            log::trace!("take_one_write() - doing recv()");
+            match receiver.recv_timeout(timeout) {
+                Ok(Some(buf)) => {
+                    let bytes = buf.get_bytes();
+                    log::trace!("take_one_write() - recv() returned {} bytes", bytes.len());
+                    writer.write_all(bytes)?;
                     if buf.is_complete() {
+                        log::trace!("take_one_write() - IS complete");
                         break;
                     }
+                    log::trace!("take_one_write() - NOT complete");
                 }
-                None => break,
+                Ok(None) => {
+                    log::trace!("take_one_write() - recv() None - sender closed");
+                    break;
+                }
+
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    log::trace!("take_one_write() - recv() timeout!");
+                    break;
+                }
+                Err(e) => {
+                    log::trace!("take_one_write() - recv() error: {}", e);
+                    break;
+                }
             };
         }
 
@@ -1476,10 +1485,11 @@ impl SimpleCamera {
     /// Captures a single image from the camera synchronously.
     ///
     /// If successful then returns `Ok` with a `Vec<u8>` containing the bytes of the image.
-    pub fn take_one(&mut self) -> Result<Vec<u8>, CameraError> {
-        log::trace!("take_one()");
+    pub fn take_one(&mut self, timeout: Duration) -> Result<Vec<u8>, CameraError> {
+        log::trace!("enter take_one()");
         let mut v = Vec::new();
-        self.take_one_writer(&mut v)?;
+        self.take_one_writer(&mut v, timeout)?;
+        log::trace!("exit take_one()");
         Ok(v)
     }
 

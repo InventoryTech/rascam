@@ -1,6 +1,8 @@
 use rascam::*;
 use std::{thread, time};
 
+const PHOTO_CAPTURE_TIMEOUT: time::Duration = time::Duration::from_secs(2);
+
 // Make sure to run with --release
 
 fn main() {
@@ -69,6 +71,6 @@ fn bench_jpegs_per_sec(n: i32) {
 
 fn bench_jpegs(n: i32, camera: &mut Box<SimpleCamera>) {
     for _ in 0..n {
-        camera.take_one().unwrap();
+        camera.take_one(PHOTO_CAPTURE_TIMEOUT).unwrap();
     }
 }
