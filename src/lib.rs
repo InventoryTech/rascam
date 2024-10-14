@@ -224,7 +224,7 @@ impl SeriousCamera {
         log::trace!("set_camera_num()");
         unsafe {
             let mut param: ffi::MMAL_PARAMETER_INT32_T = mem::zeroed();
-            param.hdr.id = ffi::MMAL_PARAMETER_CAMERA_NUM as u32;
+            param.hdr.id = ffi::MMAL_PARAMETER_CAMERA_NUM;
             param.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_INT32_T>() as u32;
             param.value = num as i32;
 
@@ -379,7 +379,7 @@ impl SeriousCamera {
         log::trace!("set_camera_params()");
         unsafe {
             let mut cfg: ffi::MMAL_PARAMETER_CAMERA_CONFIG_T = mem::zeroed();
-            cfg.hdr.id = ffi::MMAL_PARAMETER_CAMERA_CONFIG as u32;
+            cfg.hdr.id = ffi::MMAL_PARAMETER_CAMERA_CONFIG;
             cfg.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_CAMERA_CONFIG_T>() as u32;
 
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStillYUV.c#L706
@@ -416,12 +416,9 @@ impl SeriousCamera {
             let output_num = self.camera.as_ref().output_num;
             assert_eq!(output_num, 3, "Expected camera to have 3 outputs");
 
-            let preview_port_ptr =
-                *(output.offset(MMAL_CAMERA_PREVIEW_PORT) as *mut *mut ffi::MMAL_PORT_T);
-            let video_port_ptr =
-                *(output.offset(MMAL_CAMERA_VIDEO_PORT) as *mut *mut ffi::MMAL_PORT_T);
-            let still_port_ptr =
-                *(output.offset(MMAL_CAMERA_CAPTURE_PORT) as *mut *mut ffi::MMAL_PORT_T);
+            let preview_port_ptr = *(output.offset(MMAL_CAMERA_PREVIEW_PORT));
+            let video_port_ptr = *(output.offset(MMAL_CAMERA_VIDEO_PORT));
+            let still_port_ptr = *(output.offset(MMAL_CAMERA_CAPTURE_PORT));
             let preview_port = *preview_port_ptr;
             let mut video_port = *video_port_ptr;
             let mut still_port = *still_port_ptr;
@@ -607,7 +604,7 @@ impl SeriousCamera {
 
             // Contrast
             let contrast: MMAL_RATIONAL_T = MMAL_RATIONAL_T {
-                num: settings.contrast as i32,
+                num: settings.contrast,
                 den: 100,
             };
             let status = ffi::mmal_port_parameter_set_rational(
@@ -623,7 +620,7 @@ impl SeriousCamera {
 
             // Saturation
             let saturation: MMAL_RATIONAL_T = MMAL_RATIONAL_T {
-                num: settings.saturation as i32,
+                num: settings.saturation,
                 den: 100,
             };
             let status = ffi::mmal_port_parameter_set_rational(
@@ -639,7 +636,7 @@ impl SeriousCamera {
 
             // Sharpness
             let sharpness: MMAL_RATIONAL_T = MMAL_RATIONAL_T {
-                num: settings.sharpness as i32,
+                num: settings.sharpness,
                 den: 100,
             };
             let status = ffi::mmal_port_parameter_set_rational(
@@ -744,7 +741,7 @@ impl SeriousCamera {
             };
             status = ffi::mmal_port_parameter_set_boolean(
                 video_port_ptr,
-                ffi::MMAL_PARAMETER_ZERO_COPY as u32,
+                ffi::MMAL_PARAMETER_ZERO_COPY,
                 enable_zero_copy as i32,
             );
 
@@ -769,10 +766,8 @@ impl SeriousCamera {
                 return Ok(());
             }
 
-            let encoder_in_port_ptr =
-                *(self.encoder.unwrap().as_ref().input.offset(0) as *mut *mut ffi::MMAL_PORT_T);
-            let encoder_out_port_ptr =
-                *(self.encoder.unwrap().as_ref().output.offset(0) as *mut *mut ffi::MMAL_PORT_T);
+            let encoder_in_port_ptr = *(self.encoder.unwrap().as_ref().input.offset(0));
+            let encoder_out_port_ptr = *(self.encoder.unwrap().as_ref().output.offset(0));
             let encoder_in_port = *encoder_in_port_ptr;
             let mut encoder_out_port = *encoder_out_port_ptr;
 
@@ -844,7 +839,7 @@ impl SeriousCamera {
 
     pub fn set_awb_gain(&mut self, red_gain: f32, blue_gain: f32) -> Result<(), CameraError> {
         let mut param: ffi::MMAL_PARAMETER_AWB_GAINS_T = unsafe { mem::zeroed() };
-        param.hdr.id = ffi::MMAL_PARAMETER_CUSTOM_AWB_GAINS as u32;
+        param.hdr.id = ffi::MMAL_PARAMETER_CUSTOM_AWB_GAINS;
         param.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_AWB_GAINS_T>() as u32;
         param.r_gain.num = (red_gain * 65536.0).round() as i32;
         param.b_gain.num = (blue_gain * 65536.0).round() as i32;
@@ -933,10 +928,10 @@ impl SeriousCamera {
         unsafe {
             let port_ptr = if self.use_encoder {
                 let output = self.encoder.unwrap().as_ref().output;
-                *(output.offset(0) as *mut *mut ffi::MMAL_PORT_T)
+                *(output.offset(0))
             } else {
                 let output = self.camera.as_ref().output;
-                *(output.offset(MMAL_CAMERA_CAPTURE_PORT) as *mut *mut ffi::MMAL_PORT_T)
+                *(output.offset(MMAL_CAMERA_CAPTURE_PORT))
             };
 
             let pool = ffi::mmal_port_pool_create(
@@ -993,11 +988,7 @@ impl SeriousCamera {
         unsafe {
             let mut connection_ptr = MaybeUninit::uninit();
 
-            let preview_output_ptr = self
-                .camera
-                .as_ref()
-                .output
-                .offset(MMAL_CAMERA_PREVIEW_PORT as isize);
+            let preview_output_ptr = self.camera.as_ref().output.offset(MMAL_CAMERA_PREVIEW_PORT);
             let preview_input_ptr = self.preview.unwrap().as_ref().input.offset(0);
 
             let status = ffi::mmal_connection_create(
@@ -1070,7 +1061,7 @@ impl SeriousCamera {
         unsafe {
             let mut status = ffi::mmal_port_parameter_set_uint32(
                 self.camera.as_ref().control,
-                ffi::MMAL_PARAMETER_SHUTTER_SPEED as u32,
+                ffi::MMAL_PARAMETER_SHUTTER_SPEED,
                 0, // 0 = auto
             );
 
@@ -1089,23 +1080,19 @@ impl SeriousCamera {
                         Err(e) => log::error!("{:?}", e),
                     }
                 }
-            } else {
-                if !self.still_port_enabled {
-                    match self.enable_still_port() {
-                        Ok(_) => self.still_port_enabled = true,
-                        Err(e) => log::error!("{:?}", e),
-                    }
+            } else if !self.still_port_enabled {
+                match self.enable_still_port() {
+                    Ok(_) => self.still_port_enabled = true,
+                    Err(e) => log::error!("{:?}", e),
                 }
             }
 
             let output = self.camera.as_ref().output;
 
-            let still_port_ptr =
-                *(output.offset(MMAL_CAMERA_CAPTURE_PORT) as *mut *mut ffi::MMAL_PORT_T);
+            let still_port_ptr = *(output.offset(MMAL_CAMERA_CAPTURE_PORT));
 
             if self.use_encoder {
-                let encoder_out_port_ptr =
-                    *(self.encoder.unwrap().as_ref().output as *mut *mut ffi::MMAL_PORT_T);
+                let encoder_out_port_ptr = *(self.encoder.unwrap().as_ref().output);
                 *buffer_port_ptr = encoder_out_port_ptr;
             } else {
                 *buffer_port_ptr = still_port_ptr;
@@ -1132,7 +1119,7 @@ impl SeriousCamera {
 
             status = ffi::mmal_port_parameter_set_boolean(
                 still_port_ptr,
-                ffi::MMAL_PARAMETER_CAPTURE as u32,
+                ffi::MMAL_PARAMETER_CAPTURE,
                 1,
             );
 
@@ -1169,14 +1156,11 @@ impl SeriousCamera {
         }}
 
         self.do_take(&mut buffer_port_ptr, false)
-            .map_err(|e| {
-                unsafe {
-                    if !buffer_port_ptr.is_null() && !(*buffer_port_ptr).userdata.is_null() {
-                        drop_port_userdata(buffer_port_ptr);
-                    }
-                    self.mutex.force_unlock();
+            .inspect_err(|_e| unsafe {
+                if !buffer_port_ptr.is_null() && !(*buffer_port_ptr).userdata.is_null() {
+                    drop_port_userdata(buffer_port_ptr);
                 }
-                e
+                self.mutex.force_unlock();
             })
             .map(|receiver| match receiver {
                 ReceiverKind::SyncReceiver(receiver) => receiver,
@@ -1200,16 +1184,11 @@ impl SeriousCamera {
         }}
 
         self.do_take(&mut buffer_port_ptr, true)
-            .map_err(|e| {
-                unsafe {
-                    if buffer_port_ptr != ptr::null_mut()
-                        && (*buffer_port_ptr).userdata != ptr::null_mut()
-                    {
-                        drop_port_userdata(buffer_port_ptr);
-                    }
-                    self.mutex.force_unlock();
+            .inspect_err(|_e| unsafe {
+                if !buffer_port_ptr.is_null() && (*buffer_port_ptr).userdata.is_null() {
+                    drop_port_userdata(buffer_port_ptr);
                 }
-                e
+                self.mutex.force_unlock();
             })
             .map(|receiver| match receiver {
                 ReceiverKind::AsyncReceiver(receiver) => receiver,
@@ -1261,11 +1240,11 @@ unsafe extern "C" fn camera_buffer_callback(
                 }
             }
         } else {
-            let _result = match &mut userdata.sender {
+            match &mut userdata.sender {
                 SenderKind::AsyncSender(sender) => sender.close_channel(),
                 SenderKind::SyncSender(sender) => {
-                    if let Err(_err) = sender.send(None) {
-                        log::debug!("Got err sending None: {}", _err);
+                    if let Err(err) = sender.send(None) {
+                        log::debug!("Got err sending None: {}", err);
                     }
                 }
             };
@@ -1286,24 +1265,24 @@ unsafe extern "C" fn camera_control_callback(
     if (*buffer).cmd == ffi::MMAL_EVENT_PARAMETER_CHANGED {
         let param: *mut ffi::MMAL_EVENT_PARAMETER_CHANGED_T =
             (*buffer).data as *mut ffi::MMAL_EVENT_PARAMETER_CHANGED_T;
-        if (*param).hdr.id == (ffi::MMAL_PARAMETER_CAMERA_SETTINGS as u32) {
+        if (*param).hdr.id == ffi::MMAL_PARAMETER_CAMERA_SETTINGS {
             let settings_ptr: *mut ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T =
                 param as *mut ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T;
-            let _settings: ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T = *settings_ptr;
+            let settings: ffi::MMAL_PARAMETER_CAMERA_SETTINGS_T = *settings_ptr;
             log::debug!(
                 "Exposure now {}, analog gain {}/{}, digital gain {}/{}",
-                _settings.exposure,
-                _settings.analog_gain.num,
-                _settings.analog_gain.den,
-                _settings.digital_gain.num,
-                _settings.digital_gain.den
+                settings.exposure,
+                settings.analog_gain.num,
+                settings.analog_gain.den,
+                settings.digital_gain.num,
+                settings.digital_gain.den
             );
             log::debug!(
                 "AWB R={}/{}, B={}/{}",
-                _settings.awb_red_gain.num,
-                _settings.awb_red_gain.den,
-                _settings.awb_blue_gain.num,
-                _settings.awb_blue_gain.den
+                settings.awb_red_gain.num,
+                settings.awb_red_gain.den,
+                settings.awb_blue_gain.num,
+                settings.awb_blue_gain.den
             );
         }
     } else if (*buffer).cmd == ffi::MMAL_EVENT_ERROR {
@@ -1366,10 +1345,10 @@ impl Drop for SeriousCamera {
             if self.pool.is_some() {
                 let port_ptr = if self.use_encoder {
                     let output = self.encoder.unwrap().as_ref().output;
-                    *(output.offset(0) as *mut *mut ffi::MMAL_PORT_T)
+                    *(output.offset(0))
                 } else {
                     let output = self.camera.as_ref().output;
-                    *(output.offset(MMAL_CAMERA_CAPTURE_PORT) as *mut *mut ffi::MMAL_PORT_T)
+                    *(output.offset(MMAL_CAMERA_CAPTURE_PORT))
                 };
                 // port doesn't need to be disabled because it is already
                 // previously disabled in previous if statements
@@ -1530,7 +1509,7 @@ pub unsafe fn drop_port_userdata(port: *mut ffi::MMAL_PORT_T) {
     let userdata: Box<Userdata> = Box::from_raw((*port).userdata as *mut Userdata);
     userdata._guard.force_unlock();
     drop(userdata);
-    (*port).userdata = ptr::null_mut() as *mut ffi::MMAL_PORT_USERDATA_T;
+    (*port).userdata = ptr::null_mut();
 }
 
 trait Sender {
