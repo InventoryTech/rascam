@@ -426,6 +426,22 @@ impl SeriousCamera {
 
             let control = self.camera.as_ref().control;
 
+            // Sensor Mode
+            match ffi::mmal_port_parameter_set_uint32(
+                control,
+                ffi::MMAL_PARAMETER_CAMERA_CUSTOM_SENSOR_CONFIG,
+                settings.sensor_mode.to_u32(),
+            ) {
+                MMAL_STATUS_T::MMAL_SUCCESS => (),
+                status => {
+                    return Err(MmalError::with_status(
+                        "Unable to set Sensor Mode".to_owned(),
+                        status,
+                    )
+                    .into())
+                }
+            };
+
             // Shutter speed (in microseconds)
             let status = ffi::mmal_port_parameter_set_uint32(
                 control,
@@ -760,25 +776,20 @@ impl SeriousCamera {
                 encoder_out_port.buffer_num = encoder_out_port.buffer_num_min;
             }
 
-            status = ffi::mmal_port_format_commit(encoder_out_port_ptr);
-            if status != MMAL_STATUS_T::MMAL_SUCCESS {
-                return Err(MmalError::with_status(
-                    "Unable to set encoder output port format".to_owned(),
-                    status,
-                )
-                .into());
-            }
-
             if encoding == ffi::MMAL_ENCODING_JPEG || encoding == ffi::MMAL_ENCODING_MJPEG {
                 // Set the JPEG quality level
+                let jpeg_quality = match settings.quality {
+                    0..=100 => settings.quality,
+                    _ => DEFAULT_JPEG_QUALITY,
+                };
                 status = ffi::mmal_port_parameter_set_uint32(
                     encoder_out_port_ptr,
                     ffi::MMAL_PARAMETER_JPEG_Q_FACTOR,
-                    90,
+                    jpeg_quality,
                 );
                 if status != MMAL_STATUS_T::MMAL_SUCCESS {
                     return Err(MmalError::with_status(
-                        "Unable to set JPEG quality".to_owned(),
+                        format!("Unable to set JPEG quality to {}", jpeg_quality).to_owned(),
                         status,
                     )
                     .into());
@@ -801,6 +812,15 @@ impl SeriousCamera {
 
             // TODO: thumbnails
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c#L1290
+
+            status = ffi::mmal_port_format_commit(encoder_out_port_ptr);
+            if status != MMAL_STATUS_T::MMAL_SUCCESS {
+                return Err(MmalError::with_status(
+                    "Unable to set encoder output port format".to_owned(),
+                    status,
+                )
+                .into());
+            }
 
             Ok(())
         }

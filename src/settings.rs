@@ -6,6 +6,26 @@ use strum::{Display, EnumString};
 #[derive(Debug, Clone, Copy)]
 // use the strum crate to derive FromStr and Display
 #[derive(EnumString, Display)]
+pub enum SensorMode {
+    ModeAuto = 0,
+    Mode1080pCropped = 1,
+    Mode5MPix,
+    Mode5MPixPerSecond,
+    Mode2x2Binned,
+    Mode2x2Binned16to9,
+    ModeVGA60fps,
+    ModeVGA60fps90fps,
+}
+
+impl SensorMode {
+    pub fn to_u32(&self) -> u32 {
+        *self as u32
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+// use the strum crate to derive FromStr and Display
+#[derive(EnumString, Display)]
 pub enum ISO {
     IsoAuto = 0,
     Iso125 = 125,
@@ -144,6 +164,9 @@ impl Rotation {
     }
 }
 
+// JPEG Quality
+pub const DEFAULT_JPEG_QUALITY: u32 = 95;
+
 /// Settings for the camera.
 ///
 /// ```
@@ -191,9 +214,13 @@ pub struct CameraSettings {
     // H&V flip , default = false
     pub horizontal_flip: bool,
     pub vertical_flip: bool,
-
+    // Sensor mode
+    pub sensor_mode: SensorMode,
+    // Image quality. range 0..100
+    pub quality: u32,
     // flicker avoidance mode  (Off, Auto, 50Hz, 60Hz), default = Auto
     pub flicker_avoid: FlickerAvoidMode,
+
     pub zero_copy: bool,
     /// `use_encoder` will go away
     pub use_encoder: bool,
@@ -219,6 +246,8 @@ impl Default for CameraSettings {
             horizontal_flip: false,
             vertical_flip: false,
             flicker_avoid: FlickerAvoidMode::Auto,
+            sensor_mode: SensorMode::ModeAuto,
+            quality: DEFAULT_JPEG_QUALITY,
             zero_copy: false,
             use_encoder: true,
         }
