@@ -67,7 +67,7 @@ pub fn info() -> Result<Info, CameraError> {
             MMAL_STATUS_T::MMAL_SUCCESS => {
                 let component: *mut ffi::MMAL_COMPONENT_T = component.assume_init();
                 let mut info: ffi::MMAL_PARAMETER_CAMERA_INFO_T = mem::zeroed();
-                info.hdr.id = ffi::MMAL_PARAMETER_CAMERA_INFO as u32;
+                info.hdr.id = ffi::MMAL_PARAMETER_CAMERA_INFO;
                 info.hdr.size = mem::size_of::<ffi::MMAL_PARAMETER_CAMERA_INFO_T>() as u32;
 
                 let status = ffi::mmal_port_parameter_get((*component).control, &mut info.hdr);
