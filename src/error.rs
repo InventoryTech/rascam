@@ -119,6 +119,7 @@ impl CameraError {
 pub enum ErrorKind {
     Mmal(MmalError),
     Recv(mpsc::RecvError),
+    Timeout(mpsc::RecvTimeoutError),
     Io(io::Error),
 }
 
@@ -127,6 +128,7 @@ impl fmt::Display for CameraError {
         match *(self.kind()) {
             ErrorKind::Mmal(ref err) => write!(f, "MMAL error: {}", err),
             ErrorKind::Recv(ref err) => write!(f, "Recv error: {}", err),
+            ErrorKind::Timeout(ref err) => write!(f, "Timeout error: {}", err),
             ErrorKind::Io(ref err) => write!(f, "IO error: {}", err),
         }
     }
@@ -137,6 +139,7 @@ impl error::Error for CameraError {
         match *(self.kind()) {
             ErrorKind::Mmal(ref err) => Some(err),
             ErrorKind::Recv(ref err) => Some(err),
+            ErrorKind::Timeout(ref err) => Some(err),
             ErrorKind::Io(ref err) => Some(err),
         }
     }
@@ -157,6 +160,12 @@ impl From<MmalError> for CameraError {
 impl From<mpsc::RecvError> for CameraError {
     fn from(err: mpsc::RecvError) -> CameraError {
         CameraError(Box::new(ErrorKind::Recv(err)))
+    }
+}
+
+impl From<mpsc::RecvTimeoutError> for CameraError {
+    fn from(err: mpsc::RecvTimeoutError) -> CameraError {
+        CameraError(Box::new(ErrorKind::Timeout(err)))
     }
 }
 

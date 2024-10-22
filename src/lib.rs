@@ -128,7 +128,6 @@ impl Drop for BufferGuard {
     /// Unlocks and releases the buffer header. Gets new buffer from pool and passes it to
     /// the camera.
     fn drop(&mut self) {
-        log::trace!("drop()");
         unsafe {
             ffi::mmal_buffer_header_mem_unlock(self.buffer);
 
@@ -146,7 +145,7 @@ impl Drop for BufferGuard {
                 }
 
                 if new_buffer.is_null() || status != MMAL_STATUS_T::MMAL_SUCCESS {
-                    log::debug!("Unable to return the buffer to the port");
+                    log::error!("Unable to return the buffer to the port");
                 }
             }
 
@@ -186,7 +185,6 @@ pub struct SeriousCamera {
 
 impl SeriousCamera {
     pub fn new() -> Result<SeriousCamera, CameraError> {
-        log::trace!("SeriousCamera new()");
         init();
         unsafe {
             let mut camera_ptr = MaybeUninit::uninit();
@@ -222,7 +220,6 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_num(&mut self, num: u8) -> Result<(), CameraError> {
-        log::trace!("set_camera_num()");
         unsafe {
             let mut param: ffi::MMAL_PARAMETER_INT32_T = mem::zeroed();
             param.hdr.id = ffi::MMAL_PARAMETER_CAMERA_NUM;
@@ -240,7 +237,6 @@ impl SeriousCamera {
     }
 
     pub fn create_encoder(&mut self) -> Result<(), CameraError> {
-        log::trace!("create_encoder()");
         unsafe {
             let mut encoder_ptr = MaybeUninit::uninit();
             let component: *const c_char =
@@ -259,7 +255,6 @@ impl SeriousCamera {
     }
 
     pub fn connect_encoder(&mut self) -> Result<(), CameraError> {
-        log::trace!("connect_encoder()");
         unsafe {
             let mut connection_ptr = MaybeUninit::uninit();
             let status = ffi::mmal_connection_create(
@@ -294,7 +289,6 @@ impl SeriousCamera {
     }
 
     pub fn enable_control_port(&mut self, get_buffers: bool) -> Result<(), CameraError> {
-        log::trace!("enable_control_port()");
         unsafe {
             let cb: ffi::MMAL_PORT_BH_CB_T = if get_buffers {
                 Some(camera_buffer_callback)
@@ -315,7 +309,6 @@ impl SeriousCamera {
     }
 
     pub fn enable_encoder_port(&mut self) -> Result<(), CameraError> {
-        log::trace!("enable_encoder_port()");
         unsafe {
             let status = ffi::mmal_port_enable(
                 *self.encoder.unwrap().as_ref().output.offset(0),
@@ -339,7 +332,6 @@ impl SeriousCamera {
     /// This function will be passed to C so you are responsible for it.
     /// Make no assumptions about when this will be called or what thread it will be called from.
     pub unsafe fn set_buffer_callback(&mut self, sender: SenderKind) {
-        log::trace!("set_buffer_callback()");
         let port = if self.use_encoder {
             *self.encoder.unwrap().as_ref().output.offset(0)
         } else {
@@ -360,7 +352,6 @@ impl SeriousCamera {
     }
 
     pub fn enable_still_port(&mut self) -> Result<u8, ffi::MMAL_STATUS_T::Type> {
-        log::trace!("enable_still_port()");
         unsafe {
             let status = ffi::mmal_port_enable(
                 *self.camera.as_ref().output.offset(2),
@@ -377,7 +368,6 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_params(&mut self, info: &CameraInfo) -> Result<(), CameraError> {
-        log::trace!("set_camera_params()");
         unsafe {
             let mut cfg: ffi::MMAL_PARAMETER_CAMERA_CONFIG_T = mem::zeroed();
             cfg.hdr.id = ffi::MMAL_PARAMETER_CAMERA_CONFIG;
@@ -408,7 +398,6 @@ impl SeriousCamera {
     }
 
     pub fn set_camera_format(&mut self, settings: &CameraSettings) -> Result<(), CameraError> {
-        log::trace!("set_camera_params()");
         unsafe {
             self.use_encoder = settings.use_encoder;
             let mut encoding = settings.encoding;
@@ -846,8 +835,6 @@ impl SeriousCamera {
     }
 
     pub fn enable(&mut self) -> Result<(), CameraError> {
-        log::trace!("enable()");
-
         unsafe {
             let status = ffi::mmal_component_enable(self.camera.as_ptr());
             match status {
@@ -864,7 +851,6 @@ impl SeriousCamera {
     }
 
     pub fn enable_encoder(&mut self) -> Result<(), CameraError> {
-        log::trace!("enable_encoder()");
         unsafe {
             let status = ffi::mmal_port_enable(self.encoder.unwrap().as_ref().control, None);
             match status {
@@ -894,7 +880,6 @@ impl SeriousCamera {
     }
 
     pub fn enable_preview(&mut self) -> Result<(), CameraError> {
-        log::trace!("enable_preview()");
         unsafe {
             let status = ffi::mmal_component_enable(&mut *self.preview.unwrap().as_ptr());
             match status {
@@ -909,7 +894,6 @@ impl SeriousCamera {
     }
 
     pub fn create_pool(&mut self) -> Result<(), CameraError> {
-        log::trace!("create_pool()");
         unsafe {
             let port_ptr = if self.use_encoder {
                 let output = self.encoder.unwrap().as_ref().output;
@@ -942,7 +926,6 @@ impl SeriousCamera {
     }
 
     pub fn create_preview(&mut self) -> Result<(), CameraError> {
-        log::trace!("create_preview()");
         unsafe {
             // https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiPreview.c#L70
             // https://github.com/waveform80/picamera/issues/22
@@ -969,7 +952,6 @@ impl SeriousCamera {
     }
 
     pub fn connect_preview(&mut self) -> Result<(), CameraError> {
-        log::trace!("connect_preview()");
         unsafe {
             let mut connection_ptr = MaybeUninit::uninit();
 
@@ -1001,8 +983,6 @@ impl SeriousCamera {
         &mut self,
         buffer_port_ptr: *mut ffi::MMAL_PORT_T,
     ) -> Result<(), CameraError> {
-        log::trace!("send_buffers()");
-
         let num = ffi::mmal_queue_length(self.pool.unwrap().as_ref().queue as *mut _);
         log::debug!("got length {}", num);
 
@@ -1042,7 +1022,6 @@ impl SeriousCamera {
         buffer_port_ptr: &mut *mut ffi::MMAL_PORT_T,
         is_async: bool,
     ) -> Result<ReceiverKind, CameraError> {
-        log::trace!("do_take()");
         unsafe {
             let mut status = ffi::mmal_port_parameter_set_uint32(
                 self.camera.as_ref().control,
@@ -1062,13 +1041,25 @@ impl SeriousCamera {
                 if !self.encoder_output_port_enabled {
                     match self.enable_encoder_port() {
                         Ok(()) => self.encoder_output_port_enabled = true,
-                        Err(e) => log::error!("{:?}", e),
+                        Err(e) => {
+                            return Err(MmalError::with_status(
+                                format!("Could not enable encoder port: {}", e),
+                                status,
+                            )
+                            .into())
+                        }
                     }
                 }
             } else if !self.still_port_enabled {
                 match self.enable_still_port() {
                     Ok(_) => self.still_port_enabled = true,
-                    Err(e) => log::error!("{:?}", e),
+                    Err(e) => {
+                        return Err(MmalError::with_status(
+                            format!("Could not enable still port: {}", e),
+                            status,
+                        )
+                        .into())
+                    }
                 }
             }
 
@@ -1128,7 +1119,6 @@ impl SeriousCamera {
     }
 
     pub fn take(&mut self) -> Result<mpsc::Receiver<Option<BufferGuard>>, CameraError> {
-        log::trace!("take()");
         unsafe {
             self.mutex.raw().lock();
         }
@@ -1156,7 +1146,6 @@ impl SeriousCamera {
     pub fn take_async(
         &mut self,
     ) -> Result<futures::channel::mpsc::Receiver<BufferGuard>, CameraError> {
-        log::trace!("take_async()");
         unsafe {
             self.mutex.raw().lock();
         }
@@ -1209,12 +1198,13 @@ unsafe extern "C" fn camera_buffer_callback(
 
             match &mut userdata.sender {
                 SenderKind::AsyncSender(sender) => {
-                    sender
-                        .try_send(BufferGuard::new(port, buffer, userdata.pool, complete))
-                        .unwrap();
+                    if let Err(e) =
+                        sender.try_send(BufferGuard::new(port, buffer, userdata.pool, complete))
+                    {
+                        log::error!("camera_buffer_callback() async sending error: {}", e);
+                    }
                 }
                 SenderKind::SyncSender(sender) => {
-                    log::debug!("camera_buffer_callback() sending {} bytes", bytes_to_write);
                     if let Err(e) = sender.try_send(Some(BufferGuard::new(
                         port,
                         buffer,
@@ -1222,8 +1212,6 @@ unsafe extern "C" fn camera_buffer_callback(
                         complete,
                     ))) {
                         log::error!("camera_buffer_callback() sending error: {}", e);
-                    } else {
-                        log::debug!("camera_buffer_callback() sent {} bytes", bytes_to_write);
                     }
                 }
             }
@@ -1232,7 +1220,7 @@ unsafe extern "C" fn camera_buffer_callback(
                 SenderKind::AsyncSender(sender) => sender.close_channel(),
                 SenderKind::SyncSender(sender) => {
                     if let Err(err) = sender.send(None) {
-                        log::debug!("Got err sending None: {}", err);
+                        log::error!("Got err sending None: {}", err);
                     }
                 }
             };
@@ -1274,11 +1262,11 @@ unsafe extern "C" fn camera_control_callback(
             );
         }
     } else if (*buffer).cmd == ffi::MMAL_EVENT_ERROR {
-        log::debug!(
+        log::error!(
             "No data received from sensor. Check all connections, including the Sunny one on the camera board"
         );
     } else {
-        log::debug!(
+        log::error!(
             "Received unexpected camera control callback event, {:08x}",
             (*buffer).cmd
         );
@@ -1382,7 +1370,6 @@ pub struct SimpleCamera {
 
 impl SimpleCamera {
     pub fn new(info: CameraInfo) -> Result<SimpleCamera, CameraError> {
-        log::trace!("SimpleCamera new()");
         let sc = SeriousCamera::new()?;
 
         Ok(SimpleCamera {
@@ -1393,7 +1380,6 @@ impl SimpleCamera {
     }
 
     pub fn configure(&mut self, new_settings: &CameraSettings) {
-        log::trace!("configure()");
         self.settings = *new_settings;
 
         if self.settings.width == 0 {
@@ -1402,7 +1388,6 @@ impl SimpleCamera {
         if self.settings.height == 0 {
             self.settings.height = self.info.max_height;
         }
-        log::trace!("config = {}", self.settings);
     }
 
     pub fn get_config(self) -> CameraSettings {
@@ -1414,7 +1399,6 @@ impl SimpleCamera {
     }
 
     pub fn activate(&mut self) -> Result<(), CameraError> {
-        log::trace!("activate()");
         let camera = &mut self.serious;
 
         camera.set_camera_num(0)?;
@@ -1446,37 +1430,17 @@ impl SimpleCamera {
         writer: &mut dyn Write,
         timeout: Duration,
     ) -> Result<(), CameraError> {
-        log::trace!("take_one_writer()");
         let receiver = self.serious.take()?;
-        log::trace!("take_one_write() - got receiver");
 
         loop {
-            log::trace!("take_one_write() - doing recv()");
-            match receiver.recv_timeout(timeout) {
-                Ok(Some(buf)) => {
-                    let bytes = buf.get_bytes();
-                    log::trace!("take_one_write() - recv() returned {} bytes", bytes.len());
-                    writer.write_all(bytes)?;
-                    if buf.is_complete() {
-                        log::trace!("take_one_write() - IS complete");
-                        break;
-                    }
-                    log::trace!("take_one_write() - NOT complete");
-                }
-                Ok(None) => {
-                    log::trace!("take_one_write() - recv() None - sender closed");
+            if let Some(buf) = receiver.recv_timeout(timeout)? {
+                let bytes = buf.get_bytes();
+                log::trace!("take_one_write() - recv() returned {} bytes", bytes.len());
+                writer.write_all(bytes)?;
+                if buf.is_complete() {
                     break;
                 }
-
-                Err(mpsc::RecvTimeoutError::Timeout) => {
-                    log::trace!("take_one_write() - recv() timeout!");
-                    break;
-                }
-                Err(e) => {
-                    log::trace!("take_one_write() - recv() error: {}", e);
-                    break;
-                }
-            };
+            }
         }
 
         Ok(())
@@ -1486,10 +1450,8 @@ impl SimpleCamera {
     ///
     /// If successful then returns `Ok` with a `Vec<u8>` containing the bytes of the image.
     pub fn take_one(&mut self, timeout: Duration) -> Result<Vec<u8>, CameraError> {
-        log::trace!("enter take_one()");
         let mut v = Vec::new();
         self.take_one_writer(&mut v, timeout)?;
-        log::trace!("exit take_one()");
         Ok(v)
     }
 
@@ -1497,7 +1459,6 @@ impl SimpleCamera {
     ///
     /// Returns a future result where `Ok` contains a `Vec<u8>` containing the bytes of the image.
     pub async fn take_one_async(&mut self) -> Result<Vec<u8>, CameraError> {
-        log::trace!("take_one_async()");
         let receiver = self.serious.take_async()?;
         let future = receiver
             .fold(Vec::new(), |mut acc, buf| async move {
