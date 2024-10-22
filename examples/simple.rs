@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::Write;
 use std::{thread, time};
 
+const PHOTO_CAPTURE_TIMEOUT: time::Duration = time::Duration::from_secs(2);
+
 fn main() {
     // Set up logging to stdout
     simple_logger::SimpleLogger::new().env().init().unwrap();
@@ -25,7 +27,7 @@ fn simple_sync(info: &CameraInfo) {
     let sleep_duration = time::Duration::from_millis(2000);
     thread::sleep(sleep_duration);
 
-    let b = camera.take_one().unwrap();
+    let b = camera.take_one(PHOTO_CAPTURE_TIMEOUT).unwrap();
     File::create("image.jpg").unwrap().write_all(&b).unwrap();
 
     log::info!("Saved image as image.jpg");

@@ -1,8 +1,8 @@
 use rascam::*;
 use std::time::Duration;
 use tokio::fs::File;
-use tokio::prelude::*;
-use tokio::time::delay_for;
+use tokio::io::AsyncWriteExt;
+use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() {
@@ -31,7 +31,7 @@ async fn simple_async(info: &CameraInfo) -> Result<(), Box<dyn std::error::Error
     let mut camera = SimpleCamera::new(info.clone())?;
     camera.activate()?;
 
-    delay_for(Duration::from_millis(2000)).await;
+    sleep(Duration::from_millis(2000)).await;
 
     let b = camera.take_one_async().await?;
     let mut file = File::create("image.jpg").await?;

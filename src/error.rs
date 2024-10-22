@@ -110,18 +110,17 @@ impl CameraError {
 }
 
 #[derive(Debug)]
+/// Hints that destructuring should not be exhaustive.
+///
+/// This enum may grow additional variants, so this makes sure clients
+/// don't count on exhaustive matching. (Otherwise, adding a new variant
+/// could break existing code.)
+#[non_exhaustive]
 pub enum ErrorKind {
     Mmal(MmalError),
     Recv(mpsc::RecvError),
+    Timeout(mpsc::RecvTimeoutError),
     Io(io::Error),
-
-    /// Hints that destructuring should not be exhaustive.
-    ///
-    /// This enum may grow additional variants, so this makes sure clients
-    /// don't count on exhaustive matching. (Otherwise, adding a new variant
-    /// could break existing code.)
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 impl fmt::Display for CameraError {
@@ -129,8 +128,8 @@ impl fmt::Display for CameraError {
         match *(self.kind()) {
             ErrorKind::Mmal(ref err) => write!(f, "MMAL error: {}", err),
             ErrorKind::Recv(ref err) => write!(f, "Recv error: {}", err),
+            ErrorKind::Timeout(ref err) => write!(f, "Timeout error: {}", err),
             ErrorKind::Io(ref err) => write!(f, "IO error: {}", err),
-            _ => unreachable!(),
         }
     }
 }
@@ -140,8 +139,8 @@ impl error::Error for CameraError {
         match *(self.kind()) {
             ErrorKind::Mmal(ref err) => Some(err),
             ErrorKind::Recv(ref err) => Some(err),
+            ErrorKind::Timeout(ref err) => Some(err),
             ErrorKind::Io(ref err) => Some(err),
-            _ => unreachable!(),
         }
     }
 }
@@ -161,6 +160,12 @@ impl From<MmalError> for CameraError {
 impl From<mpsc::RecvError> for CameraError {
     fn from(err: mpsc::RecvError) -> CameraError {
         CameraError(Box::new(ErrorKind::Recv(err)))
+    }
+}
+
+impl From<mpsc::RecvTimeoutError> for CameraError {
+    fn from(err: mpsc::RecvTimeoutError) -> CameraError {
+        CameraError(Box::new(ErrorKind::Timeout(err)))
     }
 }
 
